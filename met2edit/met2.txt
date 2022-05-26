@@ -1,0 +1,36 @@
+Area banks
+==========
+
+Each area bank is 16K in size, and is loaded into $4000-$7FFF when
+it needs to be accessed. The format is as follows:
+
+$0000-$01FF: Area map data. It is made up of 16-bit pointers to the rooms.
+$0200-$02FF: Scroll info, one byte per map position. This data determines
+             which ways Samus can scroll in the room.
+$0500-$3FFF: Room data. Each room is 256 bytes in size.
+
+20880h-20A7Fh: Tile macros.
+20A80h-20C7Fh: Tile macros.
+20C80h-20E7Fh: Tile macros.
+20E80h-2107Fh: Tile macros.
+21080h-2127Fh: Tile macros.
+21280h-2147Fh: Tile macros.
+21480h-2167Fh: Tile macros.
+
+24000h-241FFh: Area map.
+24500h-27FFFh: Room data.
+28000h-281FFh: Area map.
+28500h-2BFFFh: Room data.
+2C000h-2C1FFh: Area map.
+2C500h-2FFFFh: Room data.
+30000h-301FFh: Area map.
+30500h-33FFFh: Room data.
+34000h-341FFh: Area map.
+34500h-37FFFh: Room data.
+38000h-381FFh: Area map.
+38500h-3BFFFh: Room data.
+3C000h-3C1FFh: Area map.
+3C500h-3FFFFh: Room data.
+
+met2-1.chr - 21280h
+met2-2.chr - 21080h

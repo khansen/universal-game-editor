@@ -1,0 +1,3 @@
+00448h: Level data (1st level)
+
+00014h: The first byte holds the upper two bits of each 2x2 tile structure.

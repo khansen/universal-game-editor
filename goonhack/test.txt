@@ -1,0 +1,6 @@
+room offset:
+
+0C010h-0C1BFh
+0C3D0h-0C5AFh
+0D7B0h-0D8CFh
+0DA50h-0DB9Fh

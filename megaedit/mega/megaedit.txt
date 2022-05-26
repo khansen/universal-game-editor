@@ -1,0 +1,29 @@
+
+        Mega Man I & II
+        level    editor
+        ===============
+
+        MegaMan1.NES and/or MegaMan2.NES must reside in same dir as MegaEdit.
+
+        Left mouse button:      Plot currently selected tile at cursor.
+                                Select tile from tileset on the right.
+        Right mouse button:     Pick up tile at cursor.
+
+        F1      - Next level
+        F5      - Save changes
+        TAB     - Next tile set
+        Left    - Move one column left
+        Right   - Ditto right
+        PgDown  - Move 8 columns (one screen) left
+        PgUp    - Ditto right
+        ESC     - Exit
+
+        Problems:
+
+        Some of the tilesets are screwed up, making the corresponding levels
+        very awkward to edit. :( (Especially in MM2)
+
+        Can't edit how/where the scrolling changes direction.
+
+        Can't edit MegaMan3-6 (yet), because level data format is slightly
+        different.

@@ -1,0 +1,32 @@
+
+        ROM MAP
+
+        +--------+----------+----------------------+
+        | Offset | Area     | Description          |
+        +--------+----------+----------------------+
+        | 06284  | Brinstar | Palette              |
+        | 06324  | Brinstar | Room pointer table   |
+        | 06451  | Brinstar | Room data            |
+        | 06C94  | Brinstar | Graphical structures |
+        | 06F00  | Brinstar | Tile macros          |
+        | 0A18B  | Norfair  | Palette              |
+        | 0A22B  | Norfair  | Room pointer table   |
+        | 0A3BB  | Norfair  | Room data            |
+        | 0ACC9  | Norfair  | Graphical structures |
+        | 0AEFC  | Norfair  | Tile macros          |
+        | 0E72B  | Tourian  | Palette              |
+        | 0E7E1  | Tourian  | Room pointer table   |
+        | 0E8BF  | Tourian  | Room data            |
+        | 0EC26  | Tourian  | Graphical structures |
+        | 0EE59  | Tourian  | Tile macros          |
+        | 12168  | Kraid    | Palette              |
+        | 121E5  | Kraid    | Room pointer table   |
+        | 122C7  | Kraid    | Room data            |
+        | 12A7B  | Kraid    | Graphical structures |
+        | 12C42  | Kraid    | Tile macros          |
+        | 160FE  | Ridley   | Palette              |
+        | 1618F  | Ridley   | Room pointer table   |
+        | 1624F  | Ridley   | Room data            |
+        | 169CF  | Ridley   | Graphical structures |
+        | 16B33  | Ridley   | Tile macros          |
+        +--------+----------+----------------------+

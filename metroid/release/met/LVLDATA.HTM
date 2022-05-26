@@ -1,0 +1,446 @@
+<HTML>
+<BODY COLOR="#000000" BGCOLOR="#ffffff">
+<CENTER>
+<CENTER><H2><B>METROID LEVEL DATA EXPLAINED v1.01</B></H2></CENTER>
+<BR><P>
+<CENTER><FONT SIZE=+1 COLOR="#000000">written by SnowBro (<A HREF="mailto:kentmhan@online.no">kentmhan@online.no</A>)</FONT></CENTER>
+<BR><P>
+
+<TABLE WIDTH=512>
+<BR>
+<CENTER>
+<TD>
+<FONT SIZE=+1>
+        This document attempts to explain the inner workings of the
+        graphics system used in "Metroid". I've spent a great deal of
+        time trying to figure out how everything works, and a lot of
+	time writing this document, because I know that many people
+	want to know more about this topic. In case you haven't
+	already downloaded my Metroid level editor, which is the
+	ultimate result of my research, you can do so by clicking
+	<A HREF="http://home.sol.no/~kenhanse/nes/emulate/metedit/mtedit07.zip">here</A>.
+<BR><P>
+	Throughout this document, I will assume that you're not a complete
+	newbie to ROM hacking. A basic understanding of how NES graphics work is
+	recommended, but certainly not required, as I will explain it later on.
+	I've tried not to make too many assumptions, and hopefully most of it is
+	understandable.	If there's something you find hard to understand, drop me
+	an email and I'll try to clarify.
+<BR><P>
+	Just for the record, all my discoveries covered in this
+	document are the result of observation, experimentation and use of
+	logical sense. No ASM hacking was required. I believe that mostly
+	everything which has to do with the visual appearance of a game does
+	not require changing the data processor (i.e. the game code), only 
+	the data that it processes. Knowledge of the console's hardware can get
+	you very far. There's no denying that being able to think like a
+	programmer helps when dealing with this kind of stuff though. I couldn't
+	have done this without that ability.
+<BR><P>
+        Viewed as a whole, the format of the Metroid level data is pretty complex.
+        But the programmers wisely broke it into several "sub-formats" to make it
+	easier to handle. Also, this allows us to study the formats separately.
+	I'll start by explaining the most basic of the formats, and then delve
+	further into the complexity as I move along.
+<BR><P>
+        <B>Part 1: LEVEL MAP</B>
+<BR><P>
+	As you've experienced from playing Metroid, the game is in essence a
+	myriad of long and short horizontal and vertical shafts. Internally,
+	things work a bit different. At game code level, the areas of Metroid
+	are just a series of different "rooms" which are pieced together to
+	create a larger environment. One room as seen in the game is 256x240
+	pixels (one NES screen) in size. It's very similar to how The Legend of
+	Zelda works: The difference is that in Metroid, the screen scrolls according
+	to the position of the main character (Samus), not when you touch a screen
+	boundary like in Zelda. Therefore, you don't get the impression that you're
+	travelling from one location on a map to another, but that's what's going
+	on internally.
+	Here are some rooms you've surely seen:
+<BR><P>
+<CENTER><IMG SRC="room00.gif"></CENTER>
+<BR><P>
+<CENTER><IMG SRC="room01.gif"></CENTER>
+<BR><P>
+	These were just a couple of examples; there are many rooms
+	defined for each area. Now, it is important to understand
+	that the rooms are <B>independent</B> of eachother.
+	When Samus is exploring the intricate areas of the planet SR388,
+	she is continuously moving from one "room" to another, and
+    changing her position on the internal <I>level map</I>. Which room she
+	moves to is determined by this map.
+
+	The level map is what chains the rooms together so that they form
+	corridors and shafts; the way you see the game when you're playing it.
+	Each room has a specific number associated with it. The level map
+	holds these numbers for each location on the map. The map itself is
+	32x32 bytes (1K) in size, one byte for each room, and is located at
+	offset 0254E-0294D in the Metroid ROM. Altering the area
+	design is as easy as changing the numbers at the appropriate position
+	in the level map. Note that each area has a finite number of rooms
+	defined though, and if an entry in the level map exceeds this number,
+	the game will crash.
+<BR><P>
+	Below is the complete level map for Metroid. It is taken directly
+	from the ROM. Notice that it's almost like looking at a standard
+	map of the game. The FF bytes are locations in the map which aren't
+	used, and can't be accessed. They are there to prevent Samus from
+	moving any further in that direction. They can be changed to different values
+	though, so in theory all 1024 slots of the map can be used.
+<BR><P>
+<CENTER><IMG SRC="hexmap.gif"></CENTER>
+<BR><P>
+	Thanks to Charles DuMarr for sending me this image! It was what inspired
+	me to include a Metroid map viewer within MetEdit.
+<BR><P>
+	<I>(Interesting note: The map positions coloured red are rooms which
+	shouldn't really be there: they are not accessible in the game, and
+	might be "left-overs" from an early stage of the level design.)</I>
+<BR><P>
+	As you can see, the same room can be used multiple times on the map.
+	You've probably noticed that many of the places in Metroid look very
+	similar. Well, now you know the reason: technically, they <B>are</B>
+	the same place! Another important fact is that it's impossible to have
+	two horizontal shafts or two vertical shafts directly next to eachother.
+	Each time Samus goes through a door, the game switches to the opposite 
+	scrolling type. The only times that this does not hold true is when you
+	enter or exit a special item room. In such cases the game continues to
+	scroll horizontally.
+<BR><P>
+	OK, are you still with me? Good, because now it's time to get started on
+    the juicy stuff: the actual <I>room data</I>.
+<BR><P>
+	<B>Part 2: ROOM DATA FORMATS</B>
+<BR><P>
+	As you've just learned, the internal level map defines the structure of
+	the areas in the game. But knowing that isn't enough of course. At a
+	lower level, there is the actual room data; the data that defines the
+	visible objects in the rooms that the level map references.
+<BR><P>
+	The format of the room data is different from anything I've seen in a
+	NES game (except for Kid Icarus, which has the exact same format). The
+	programmers divided it into three separate formats:
+<BR><P>
+	1. Tile definitions
+<BR>
+	2. Structure definitions
+<BR>
+	3. Object definitions (room data)
+<BR><P>
+	I'll explain each of these formats in detail, starting with the cornerstone
+	of the level data: the tile definitions.
+	
+<BR><P>
+	<B>TILE DEFINITIONS</B>
+<BR><P>
+	As you probably know, the NES screen is represented in NES PPU memory by a
+	table of tile index values, 32x30 bytes in size. This table is called a
+	Name Table. Each byte holds a value which references a tile in the Pattern
+	Table; tiles themselves are 8x8	pixels each. (See y0shi's "nestech.txt" for
+	more technical information.) A graphical way of representing NES video memory
+	is this:
+<BR><P>
+<IMG SRC="grid.gif">
+<BR><P>
+	Each square represents a byte in the Name Table, and each byte holds a tile value
+	ranging from 00 to FF. This value determines what tile will be displayed
+	in that particular area of the screen.
+<BR><P>
+	If you study the screen grid above, you will see that the tiles together form
+	larger patterns; rocks, vents, columns and so on. Here are some examples:
+<BR><P>
+<CENTER><IMG SRC="tile00.gif">&nbsp;&nbsp;<IMG SRC="tile01.gif">&nbsp;&nbsp;<IMG SRC="tile02.gif"></CENTER>
+<BR><P>
+	Notice that each pattern consists of four tiles, forming a 2x2 tile grid.
+	Since these and many other specific patterns are used many times, and their tile
+	values always stay the same, specifying the four tile values for a certain pattern
+	<B>every</B> time that pattern is to appear on the screen would be wasteful. Instead,
+	the tile values are defined only <B>once</B>, and then each 2x2 tile pattern is referenced
+	by a byte value, exactly the same way as rooms are referenced in the level map.
+	This also means that if you change the tile definitions for a certain pattern, every
+	occurance of that pattern will change in the game. Clever eh?
+	Well, it's the way almost all (if not absolutely all) games which have much level
+	data do it. Apart from saving a lot of space in the ROM, it also saves the level designers
+	a lot of time.
+<BR><P>
+	But just defining tile patterns like this wasn't enough for the Metroid programmers. They
+	had to expand on this concept because of the space constraints and high cost of early NES
+	carts. Which brings us to the next format:
+<BR><P>
+	<B>STRUCTURE DEFINITIONS</B>
+<BR><P>
+	If you look beyond the 2x2 tile patterns in the many rooms of Metroid, you will see that
+	they form even larger patterns, <B>structures</B> as I call them, which are of variable
+	height and width. Examples of common structures which are repeated many times are:
+<BR><P>
+<CENTER><IMG SRC="struc00.gif"><BR><P><IMG SRC="struc01.gif"><BR><P><IMG SRC="struc02.gif"><BR><P><IMG SRC="struc03.gif"></CENTER>
+<BR><P>
+	These structures are also defined only once and then referred to by a byte value in the
+	object definitions (explained in the next section). The tile definitions described in
+	the previous section are used to define them. The format of a structure is as follows:
+<BR><P>
+	<LI>The first byte holds the horizontal "length"
+	of the structure. It says how many 2x2 tile
+	patterns to draw horizontally on the screen.</LI>
+<BR>
+	<LI>The remaining bytes each hold a tile
+	definition value. The exact number of bytes
+	depends on the length byte. For example, the
+	structure data <FONT COLOR="red">04 </FONT> <FONT COLOR="blue">20 22 21 3F </FONT>would draw the
+	four 2x2 tile patterns 20, 22, 21 and 3F, in
+	that order. As explained earlier, the actual
+	tile values are defined elsewhere in the ROM.</LI>
+<BR>
+	<LI>If the next byte is FF, it means the structure
+	is finished. Otherwise, the X position is reset and
+	the Y position is incremented by two tiles, and a
+	new horizontal tile pattern sequence is specified, the
+	format being the same as above.</LI>
+<BR><P>
+	Just like the tile definitions, each structure definition
+	has a unique byte value, regardless of its individual size.
+	These values are used by the next and final format:
+<BR><P>
+<B>OBJECT DEFINITIONS (ROOM DATA)</B>
+<BR><P>
+	The object definitions are what one might call the
+	real room data. To save even more space, the Metroid
+	programmers decided to create a data format which only
+	stores data for the sections of each room that are
+	actually used. Initially, when a room is drawn, the whole
+	Name Table is "cleared" (set to a totally transparent tile),
+	in other words it's black. Then, the room <B>objects</B> are
+	laid on top of eachother according to the room data (object definitions).
+<BR><P>
+	The room data consists of a number of 3-byte chunks, each chunk
+	defining a screen object, which are of the following format (values
+	represented in binary):
+<BR><P>
+<PRE WIDTH=80>
+Byte 0:	%yyyyxxxx
+
+	yyyy = Y coordinate of graphical structure
+	xxxx = X coordinate of graphical structure
+
+	The coordinates of the upper left corner of
+	the structure. Multiply by 16 to get the 
+	real screen coordinates.
+
+Byte 1: %ssssssss
+
+	This byte holds the value of the graphical
+	structure to display. See explanations in
+	previous section.
+
+Byte 2: %------cc
+
+	cc = Palette number used when the tiles are
+	     displayed. Only the lower two bits of
+	     this byte are used, the upper six are
+	     ignored. The palette bits are written
+	     to the NES Attribute Table 
+	     (see "nestech.txt").
+</PRE>
+<BR><P>
+	These objects are drawn in the order they appear
+	in the room data. When the value FD is reached,
+	it means the entire room has been set up.
+<BR><P>
+<B>Part 3: ROM MAP</B>
+<BR><P>
+	The final section of this document is a listing of the
+	parts of the Metroid ROM that have to do with the graphics.
+	If you're planning on doing a level editor, or just want to
+	mess around with the ROM, this listing can be pretty useful. :-)
+<BR><P>
+Area: Brinstar
+<BR><P>
+<TABLE BGCOLOR="#FFFFFF" BORDER=1>
+<TR>
+<TD><CENTER><FONT SIZE=+1><B>ROM offset</B></FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1><B>Description</B></FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>06284-062A3</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Palette</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>06324-06381</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>06382-063E5</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>06451-06C93</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room data</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>06C94-06EFF</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure definitions</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>06F00-?????</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Tile definitions</FONT><br></CENTER></TD>
+</TR>
+</TABLE>
+
+<BR><P>
+Area: Norfair
+<BR><P>
+<TABLE BGCOLOR="#FFFFFF" BORDER=1>
+<TR>
+<TD><CENTER><FONT SIZE=+1><B>ROM offset</B></FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1><B>Description</B></FONT><br></CENTER></TD>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0A18B-0A1AA</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Palette</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0A22B-0A286</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0A287-0A2E8</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0A3BB-0ACC8</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room data</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0ACC9-0AEFB</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure definitions</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0AEFC-?????</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Tile definitions</FONT><br></CENTER></TD>
+</TR>
+</TABLE>
+
+<BR><P>
+Area: Tourian
+<BR><P>
+<TABLE BGCOLOR="#FFFFFF" BORDER=1>
+<TR>
+<TD><CENTER><FONT SIZE=+1><B>ROM offset</B></FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1><B>Description</B></FONT><br></CENTER></TD>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0E72B-0E74A</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Palette</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0E7E1-0E80A</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0E80B-0E84A</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0E8BF-0EC25</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room data</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0EC26-0EE58</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure definitions</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>0EE59-?????</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Tile definitions</FONT><br></CENTER></TD>
+</TR>
+</TABLE>
+
+<BR><P>
+Area: Kraid
+<BR><P>
+<TABLE BGCOLOR="#FFFFFF" BORDER=1>
+<TR>
+<TD><CENTER><FONT SIZE=+1><B>ROM offset</B></FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1><B>Description</B></FONT><br></CENTER></TD>
+<TR>
+<TD><CENTER><FONT SIZE=+1>12168-12187</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Palette</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>121E5-1222E</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>1222F-1227C</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>122C7-12A7A</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room data</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>12A7B-12C41</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure definitions</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>12C42-?????</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Tile definitions</FONT><br></CENTER></TD>
+</TR>
+</TABLE>
+
+<BR><P>
+Area: Ridley
+<BR><P>
+<TABLE BGCOLOR="#FFFFFF" BORDER=1>
+<TR>
+<TD><CENTER><FONT SIZE=+1><B>ROM offset</B></FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1><B>Description</B></FONT><br></CENTER></TD>
+<TR>
+<TD><CENTER><FONT SIZE=+1>160FE-1611D</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Palette</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>1618F-161E2</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>161E3-1621C</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure pointer table</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>1624F-169CE</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Room data</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>169CF-16B32</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Structure definitions</FONT><br></CENTER></TD>
+</TR>
+<TR>
+<TD><CENTER><FONT SIZE=+1>16B33-?????</FONT><br></CENTER></TD>
+<TD><CENTER><FONT SIZE=+1>Tile definitions</FONT><br></CENTER></TD>
+</TR>
+</TABLE>
+
+<BR><P>
+	For you fellow programmers out there, the room values
+        and structure definition values (which both have been
+	discussed earlier) are just indexes into
+	their respective pointer tables. For example, value 00
+	fetches the 1st 16-bit pointer from the table, value 01
+	fetches the 2nd	16-bit pointer, and so on. As for the
+	tile definition values: since each tile definition is
+	four bytes long (2x2 tiles), simply multiply the value
+	by four to get the offset into the tile definition table.
+	Also, note that	the very first byte of each room's data has unknown
+	meaning to me. It's a 2-bit value, so my guess is that it
+	specifies which Name Table the room should be drawn to,
+	but if you're writing a level editor, you can just skip it.
+<BR><P>
+	Well, that should just about cover everything. What's
+	that? "Enemy data information", you say? Nah, better
+	save that for my next document.
+<BR><P>
+	If you still have any questions, or just want to give me
+	some comments, please direct an email to <A HREF="mailto:kentmhan@online.no">kentmhan@online.no</A>.
+	Have a nice day.
+</TD>
+</TABLE>
+</BODY>
+</HTML>

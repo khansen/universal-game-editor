@@ -1,0 +1,145 @@
+
+                         METROID MAP DATA FORMAT v1.1
+
+                    The death of the "Secret Worlds" myth
+
+                           by Kent Hansen (SnowBro)
+                             <kentmhan@online.no>
+
+
+        Most fans of this timeless NES classic have probably heard
+        of the so-called "Secret Worlds" of Metroid. For a long time,
+        I maintained a site concerning these strange areas. It was my
+        hope that they weren't just a glitch, but actually put there
+        on purpose, as an added bonus to those who had played the game
+        to death (and there are a lot of us). So I spent many hours
+        creating maps and writing detailed descriptions on how to
+        access every one of these parts of the game. Recently, however,
+        I've come to the (sad) conclusion that the areas are simply bugs 
+        in the game engine. To understand what really happens when you
+        access one of these areas, one has to know about the format of
+        the level data.
+                Each of the main parts of Metroid: Brinstar, Norfair,
+        Tourian, Kraid's Hideout and Ridley's Hideout, have an AREA MAP.
+        (Actually, they are all part of ONE large map.) Each location in
+        this map contains a value which holds the room number to display
+        at that location in the area. OK, let's take a concrete example.
+        Here's what the map data for the first horizontal corridor in
+        the game (where you start out) looks like:
+
+        08 17 09 14 13
+            |  |
+            |  |
+            |  +------ This is where you get beamed down.
+            +--------- This is where the Maru Mari (crystal ball) is.
+
+TIP:    I suggest downloading my Metroid level editor (see link at the
+        end of this file), MetEdit, to play around with this. It displays
+        the room number of each map location, so you can see for yourself
+        what I mean, if the info above is not clear. Also, it has a map
+        viewer, which lets you view the entire game map.
+
+        The actual ROOM DATA (the objects and enemies in the rooms) for
+        these map locations is defined elsewhere in the ROM. (I won't get
+        into the format of that data, since it's quite complex and you
+        don't really need to know it, unless you're planning to make your
+        own level editor for Metroid.)
+                What does this mean, then? Well, it means that the game
+        can use the same rooms more than once; it simply has to reference
+        the appropriate room number in the map data. For example, the
+        following sequence of values make up a long horizontal corridor:
+
+        14 14 14 14 14
+
+TIP:    MetEdit has the ability to change which room number is contained
+        in each map location, so I suggest you change the room numbers in
+        the start area of the game, save the changes and run the ROM in
+        an emulator to see the full effect.
+
+        Next follows an explanation of how the game code uses the map
+        data when you're playing the game.
+               At all times, when you're playing Metroid, there is a
+        value in NES memory which holds the offset (pointer) into the
+        area map. When you go one room left, the pointer is decreased
+        by one. When you go one room right, the pointer is increased
+        by one. When you go one room up, the pointer is decreased by
+        32 (32 is the width of the map). When you go one room down,
+        the pointer is increased by 32. This way the game code can
+        effectively fetch the room number from the current area map
+        position and set up the room you've entered. For a graphical
+        representation of what I just explained, check out the map
+        in the upper left corner of Zelda; it's very similar to how
+        the Metroid area maps look like in memory.
+
+        OK, now for the "hidden area" part. You probably know about the
+        so-called "wall-door" trick; the method that must be employed in
+        order to access these areas. (Actually, you don't have to anymore,
+        because there are Game Genie codes which enable you fall right
+        through the floor and jump through walls - see end of this
+        document.) The game programmers never intended this to be
+        possible.
+                So what happens when you go up or down, when you're not
+        really supposed to be able to? Well, the map pointer will be
+        decreased/increased as usual. But the data it points to will
+        NO LONGER BE VALID, because the data it accesses isn't part of
+        the area's map! This won't crash the game though; it will
+        continue to treat the data as valid. So there you have your
+        "secret world": a mix of invalid map locations containing
+        who-knows-what.
+                But wait: the map data accessed in such cases, is
+        actually technically valid; it IS part of the game map. The
+        problem is that the data belongs to a different area. You've
+        probably heard of the "huge secret world" above Ridley's
+        Hideout. Well, what really happens when you enter that area,
+        is that you're accessing the map data from Norfair, since that
+        is the data contained in memory directly above the map for
+        Ridley's Hideout. I know that this may sound strange, but to
+        make things clearer, let me explain what happens when you take
+        an elevator from one part of the game to the other.
+                The elevators are actually just excuses for the game
+        code to bank-switch. As you probably know, the NES has a pretty
+        limited amount of memory; only 32K of program ROM space. So
+        when you take an elevator, the game uses this opportunity to
+        switch to another ROM bank, containing the music, graphics
+        data (since Metroid has no VROM), pointer tables, room data
+        and other things specific to that area of the game. This
+        explains why the "secret world" above Ridley's Hideout uses
+        map data from Norfair, yet the rooms look just like they are
+        part of Ridley's Hideout: the game code hasn't bank-switched.
+        It will use the map data from Norfair, but the ROOM DATA and
+        graphics from Ridley's Hideout!
+        
+TIP:    MetEdit doesn't require you to go via the elevators to change
+        the graphics and room data; every time you enter a new room,
+        the editor checks which area that position in the map belongs
+        to, and sets the pointers to the data accordingly. This makes
+        it easy to test what I just explained above:
+                From the elevator in Ridley's Hideout, go down one
+        room, then go to the far right, until you reach the top of a
+        long vertical shaft. Above this point, one of the "secret
+        worlds" is located. But by going up a couple of times you see
+        that, WOW, this isn't a hidden zone; it's Norfair! Press
+        spacebar to enter the map viewer, then you can see where
+        you're actually at. Does it look like a secret world to you?
+
+        And that's it. This document has probably crushed the hopeful
+        dreams of quite a few avid Metroid gamers, but on the other
+        hand; at least you know the truth now.      
+
+        Send questions, complaints or suggestions to kentmhan@online.no.
+
+        Download MetEdit from: http://home.sol.no/~kenhanse/nes
+
+        Some interesting Game Genie codes for Metroid:
+
+        SUPEAI - descend through floor a little each time you shoot up.
+        TTXTTT - walk left through walls.
+        EEXTTY - jump through ceilings.
+        KAPGEI - jump in mid-air.
+        SSAEAI - travel freely through walls when you're a ball.
+        SSXAEI - get stuck in walls (it CAN be useful).
+        KUSTIN - standby if you get stuck in a wall.
+
+        Thanks to Dave Stewart & Jeffrey Toyes for these codes.
+
+        (c) Kent Hansen 1998

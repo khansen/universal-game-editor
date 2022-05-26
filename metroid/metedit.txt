@@ -1,0 +1,198 @@
+
+        Metroid level editor v0.82
+        by SnowBro <kentmhan@online.no>
+      
+
+        New stuff
+        -=-=-=-=-
+
+        - When selecting an object with the mouse, the object's
+          priority is now accounted for. If you click on an
+          area of the screen where there are two or more objects,
+          the object drawn last will be selected.
+        - You can flip through object types both ways with the
+          mouse now: hold down Shift to flip left. This way you
+          don't have to flip through the whole selection again
+          if you accidentally click past the object type you
+          wanted.
+
+        This is the final update to v0.8.
+
+        v0.81:
+
+        - Just a couple of bug fixes which were discovered shortly
+          after v0.80 was released.
+
+        v0.80:
+
+        - Mouse support. Left-click on an object to pick it up, then
+          click again to drop it where you want. Right-click to
+          change the object type.
+        - Map editor! You can now add and delete entries in the
+          level map, as well as change Samus' starting position on
+          the map. Read the map editor section of this document
+          for more information.
+        - The tile data is now taken directly from the ROM,
+          instead of from VRAM dumps. This means that if you've
+          made any modifications to the tile data, it will show
+          up in MetEdit.
+        - Room data viewer. Press F10 to enter it. Lets you view
+          the data for the objects of the current room. The data
+          for the current object is highlighted.
+        - My Metroid level data explanation doc is now included with
+          this program.
+        - Change Room (Ctrl+Up/Down) had to be remapped to
+          Ctrl+Left/Right.
+
+        Keys
+        -=-=
+
+        F1              - warp to next area
+        F5              - save changes
+        F10             - view room data
+        Arrow keys      - move object
+        A               - select previous object
+        S               - select next object
+        (LShift +) TAB  - change object type
+        2               - change upper 2 bits of object's color
+        LShift + up     - move up on the level map
+        LShift + down   - move down on the level map
+        LShift + left   - move left on the level map
+        LShift + right  - move right on the level map
+        Ctrl + left     - decrease room number
+        Ctrl + right    - increase room number
+        SpaceBar        - toggle between level editor and map editor
+        
+
+        Mouse
+        =-=-=
+
+        Objects can be manipulated with the mouse too. First, left-click
+        on the object to pick it up. Move it to the desired position,
+        then left-click again to drop it. While the object is selected,
+        you can right-click to change the object type (same function as
+        TAB on the keyboard). Personally, I've found that the fastest
+        editing is achieved by using the mouse to select the object and
+        its position, and the keyboard to change the object type (and
+        of course, other stuff which can't be changed with the mouse).
+
+
+        Play around with the program a bit and the various features
+        will become clear. Read the following section to avoid
+        questions later! I also suggest you read the two docs that
+        are included with this .ZIP archive, as they contain detailed
+        description of the level formats.
+
+
+        IMPORTANT!!! Read please IMPORTANT!!!
+                     =-=-=-=-=-=
+
+        OK, first some info about moving around on the area map.
+        Basically, you move around just like you would when you
+        play the game - only you move an entire room at a time
+        (each byte in the area map holds a room number). This way
+        you can quickly access the various parts of the areas,
+        and see them just the way they are when you play the game.
+
+        The "Decrease/increase room number" feature also needs an
+        explanation. When you press Ctrl+Left or Ctrl+Right, you do
+        NOT move anywhere on the area map. You simply change WHICH
+        ROOM that is to be displayed at the current AREA MAP POSITION.
+        Each area has a number of predefined rooms/screens, and the
+        area map contains the sequence of these rooms. This means that
+        one room can be used more than one time. And this is done A LOT
+        in Metroid; I bet you've seen how repetitious the graphics are
+        in some places. Unfortunately, this limits the freedom of level
+        editing. You always have to remember that the room you're
+        making changes to most likely is used somewhere else in the
+        area, so you have to design the rooms in such a way that they
+        can be reused in other places without causing trouble (you
+        don't want Samus to enter a door and then get stuck in a wall,
+        for example). Well, the Metroid designers could do it, so
+        why can't you? ;)
+
+        Each room consists of a number of objects. Use keys "A" and
+        "S" to select the object you want to manipulate; the selected
+        object will be indicated by a pulsating cursor in its upper
+        lets corner. You can then move it around with the cursor
+        keys, and change the object type by pressing TAB.
+
+        The objects are drawn in the order they appear in the room
+        data buffer. This gives each object a unique priority on the
+        screen. Use the room data viewer (F10) to see in what order
+        the objects are stored.
+
+        Sorry, you can't delete or insert screen objects in this
+        editor (yet). Just hide any objects you don't want to see
+        behind another object.
+
+
+        The map editor
+        -=-=-=-=-=-=-=
+
+        Press spacebar to enter the map editor. The entire "Metroid"
+        level map is displayed. Your current position on the map is
+        indicated by a pulsating square. The following keys are now
+        available:
+
+        Arrow keys      - move around on the map
+        Ins             - activate current map position
+        Del             - de-activate current map position
+        TAB             - select area
+        BackSpace       - set game start pos
+        SpaceBar        - return to level editor
+
+        Note that selecting the area # of a position in the map
+        (using TAB) doesn't necessarily put you in that area when
+        you run the game. It's only useful when you activate a map
+        entry and you know from which area this map position can be
+        accessed in the game. This way MetEdit will know what room/gfx
+        data to associate with this map position. MetEdit creates a
+        file called "metedit.map" which holds the area # for all the
+        map entries, but that file is used internally so you shouldn't
+        mess with it.
+
+        Setting Samus' initial position on the map can be done by
+        pressing BackSpace. Currently you are limited to placing
+        Samus somewhere in Brinstar. You *could* place her in
+        another area, but the gfx/room data from Brinstar will
+        still be used, because that's where the game expects to
+        begin. I'm working on finding the piece of game code that
+        determines in which area the game begins, so that this
+        can be fixed.
+
+        It's not possible to have two horizontal or two vertical
+        shafts directly next to eachother, because of how the game
+        engine works. Every time you go through a door, the game
+        switches to the opposite scrolling. Keep this in mind when
+        editing the map, otherwise you'll get in trouble with the
+        scrolling!
+
+
+        What's to come
+        =-=-=-=-=-=-=-
+
+        - The next version (v1.0) will let you edit the enemies.
+          (Hehe. Yes, I know I said that in the readme of the
+          previous version too. But the enemy format has still
+          not been hacked completely.)
+        - Ability to delete/insert room objects. I've devised a
+          clever way of compressing the room data so that 3K of
+          ROM space is freed up. This space can be used for
+          extra room data.
+        - Ability to set Samus' initial starting position to
+          anywhere (read: any area) on the map.
+
+
+        Contact
+        =-=-=-=
+
+        If you like this program, and would like to see a new
+        version, feel free to let me know:
+
+        kentmhan@online.no
+
+        For the latest versions of all my programs (all emu/hacking
+        related), visit:
+
+        http://home.sol.no/~kenhanse/nes

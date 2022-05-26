@@ -1,0 +1,36 @@
+Kid Icarus level data viewer
+by SnowBro <kentmhan@online.no>
+
+Well, after hours of studying KIDICAR.NES with NESticle and a hex editor,
+I've finally figured out the location of all the level data, as well as
+its format. Over thousand lines of text is the result of my research, and
+I had originally intended it to be a tutorial, but instead it ended up
+as a huge reference containing info only needed by people interested in
+writing a level editor. Anyway, I'm releasing this little program to
+show you that I should have enough info to make such a level editor now.
+So far you can only VIEW the rooms however, not make any changes to
+them. But I'm working on it.
+
+To use the viewer, KIDICAR.NES must be present in the same directory as
+the executable kidview.exe. (I will NOT supply you with the ROM image.
+Please don't ask me to send it to you.)
+
+To view a level's data, type "kidview [level]",
+where [level] is one of the following values:
+
+        1: Level 1-1, 1-2, 1-3
+        2: Level 2-1, 2-2, 2-3
+        3: Level 3-1, 3-2, 3-3
+        4: Level 1-4, 2-4, 3-4
+        5: Level 4-1
+
+Change the current room by using left and right arrow keys.
+
+Press spacebar to see how the room is set up, one object at a time.
+Quite interesting, huh? Perhaps it will give you a clue on what the
+format of the level data looks like, and how a simple room editor
+would work.
+
+Note that each sub-level uses a different palette, but the viewer doesn't
+account for this, so the colors in some levels (1-2, for example) aren't
+correct. This will be fixed of course.

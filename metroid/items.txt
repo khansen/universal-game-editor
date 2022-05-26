@@ -1,0 +1,20 @@
+Special item handler
+--------------------
+
+The special item handler is executed every time Samus moves to a new
+position on the map. It checks if this position contains a special item,
+and if it does, action is taken accordingly. A "special item" can be
+virtually anything: An elevator, a power-up, an enemy etc.
+
+At address 9598h (CPU), the 16-bit pointer to the item data is located.
+
+0 - Bombs
+1 - High Jump
+2 - Long Beam
+3 - Screw Attack
+4 - Maru Mari
+5 - Varia
+6 - Wave Beam
+7 - Ice Beam
+8 - Energy Tank
+9 - Missile Container (5)

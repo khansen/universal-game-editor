@@ -1,0 +1,1170 @@
+1A530 - %yyyyxxxx (collision detection)
+1A540 - level start offset (range 1A...76)
+1A56A - Level map. The level map consists of
+
+
+                          +----------------------+
+                          |                      |
+                          |  HACKING KID ICARUS  |
+                          |     version 1.00     |
+                          |                      |
+                          +----------------------+
+
+                             Written by SnowBro
+                            <kentmhan@online.no>
+
+                          1 a. Introduction
+                            b. Assumptions
+                            c. About the author
+                          2 a. Macros
+                            b. Graphical structures
+                            c. Room data
+                            d. Level maps
+                          3 a. Level 1
+                            b. Level 2
+                            c. Level 3
+                            d. Level 1-4, 2-4, 3-4
+                            e. Level 4-1
+                          5 a. Changing vital stats
+                          6 a. Closing words
+
+
+
+1a. INTRODUCTION
+----------------
+
+This document explains the format of the level data in the NES game
+"Kid Icarus" and how the game uses its graphics (Sections 2 and 3).
+It also shows you how to track down and change variables that the game
+uses (Section 4). I spent quite a while assembling this info, and now
+I'd like to share my discoveries with those interested (since you're
+reading this document, you probably are). Hope you can put it to use
+or at least learn something from reading it. Most of the hacking
+methods discussed don't necessarily apply ONLY to "Kid Icarus", and
+can in many cases be used to hack other games as well.
+
+The reason I wrote this was because I wanted to see how difficult it is
+to understand how a game works, when you have nothing else to help you
+than a hex editor, disassembler, NESticle and the ROM itself. It's
+amazing what you can accomplish with these tools.
+
+
+1b. ASSUMPTIONS
+---------------
+
+I assume you're not a complete newbie to ROM hacking. You should at least
+know how to use a hex editor. The ROM offsets (addresses) and ROM values
+I refer to throughout this document are hexadecimal.
+
+I assume you have an (unmodified) copy of the Kid Icarus ROM, in case you
+plan to toy around with it. Remember to make a BACKUP before doing so,
+though, in case you mess up! If you don't have the ROM, then please don't
+ask me to send it to you, or where to get it. Requests like these will
+be ignored.
+
+A basic knowledge of the NES hardware would be nice, but not required,
+except maybe for section 3 ("Map data decompression"). In order to
+understand section 3 and 4 completely you should also be familiar
+with 6502 assembly language, but that's not strictly required. You
+don't NEED to know 6502 asm to understand this document, but to hack
+other games on your own, I must say it can be very useful. I've commented
+every single line of 6502 code to make it easier for everyone to
+understand, and those who don't wish to understand it, can just skip it.
+
+By the way: I won't cover text editing in this tutorial; I assume you
+already know how to do that, because there are numerous tutorials
+explaining that procedure. Changing the text in "Kid Icarus" is very
+simplistic anyway, all you need is a hex editor that can load font
+tables (like my own editor, "Hexposure", or Necrosaro's "Thingy").
+
+
+1c. ABOUT THE AUTHOR
+--------------------
+
+My nickname is SnowBro, referred to in real life simply as
+"Kent Hansen". At the time of writing, I'm 18 years old.
+I am the author of the hex editor/hacking tool "Hexposure",
+the NES emulator "NESemu" and the NES tile editor "Tile Layer".
+
+Now, with that out of the way, let's get down to business.
+
+
+2a. MACROS
+----------
+
+Macros are something that makes the life of a programmer easier. In
+"Kid Icarus", they are also used to make the size of the code smaller.
+
+The macros are defined in the ROM. Each macro consists of four bytes;
+each byte in the macro points to a 8x8 tile in PPU RAM, and together
+these tiles form a 2x2 tiles (or 16x16 pixels) picture. The macro
+data is stored sequencially in ROM (4x1 bytes). You can change these
+values to make the game look different, and it's really simple.
+Here's an example:
+
+The macro that defines the small bush seen often in the game can be
+found at offset 1A338 in the ROM. It consists of the values 70 71 72 73.
+The macro used for the jar which little snake kiddies fall down from
+is at offset 1A4A8. It consists of the values A1 A2 A3 A4.
+Now, if you replace locations 1A338-1A33B with A1 A2 A3 A4, all the bushes
+will become snake containers. Pretty neat eh?
+
+How did I figure out the macro values? Easy, just run Kid Icarus in
+NESticle, start one of the levels and press F2 to bring up the Pattern
+Tables (it doesn't matter which level, because "Kid Icarus" uses the
+same tile data throughout the game). Then click on the tiles to see
+their values. Study the Name Table graphics closely to see which tiles
+are used where. You can then search for these values in the ROM, just
+like you search for text. However, you don't really need to bother with
+that unless you really want to, since I've compiled a list of all the
+macros below (I believe it is complete, except for some of the
+descriptions).
+
+
+2b. GRAPHICAL STRUCTURES
+------------------------
+
+The raw uncompressed map data consists of predefined structures stored
+in the ROM. The graphical structures are made up of the macros covered in
+the previous section. The format is of two types; which type used by
+a specific structure depends on whether the structure is going to draw the
+tiles horizontally or vertically.
+
+A structure for horizontal drawing has the following format:
+
+* The first byte specifies how many macros to draw.
+* The remaining bytes specify which macros to draw.
+* The value FF follows, functioning as an end-of-structure statement.
+
+A structure for vertical drawing has the following format:
+
+* Length (always one).
+* Which macro to draw.
+* Length (always one).
+* Which macro to draw.
+* ... etc until FF is reached.
+
+A structure can also draw macros both horizontally AND vertically; then
+the format is a combination of the two described above (read further
+for an example of this).
+
+Messing with the length of the structure isn't very wise, unless you
+really know what you're doing. However, modifying which macros that are
+displayed is perfectly all right. Remember that the same structures are
+re-used many times though, so the graphics won't change in just one
+spot, but most likely in many places.
+
+A typical structure looks like this:
+
+02 13 13 FF
+
+If you look at the chart of macros in section 2a, you'll see that value
+13 represents a bush. In other words this structure would draw 2 bushes,
+horizontally (side by side).
+
+If this structure were to draw two bushes vertically (on top of each
+other), it would look like this:
+
+01 13 01 13 FF
+
+And a structure that draws two bushes on top of two other bushes,
+looks like:
+
+02 13 13 02 13 13 FF
+
+As you can see, the format is only slighty different.
+
+A lot of the game's appearance can be altered just by changing the
+values of the macros that the structures call, and the way they
+are drawn. You can for example change one type of bricks to another
+to make the scenery look different. I even thought of a way of CHEATING
+by changing certain values:
+If you change the Fire water structure at offset 1A247 (values 30 30 30)
+into Energy water (38 38 38), every time you walk into water which
+normally would hurt you, you now RECEIVE energy! Yeah, I know; too
+cool. :-)
+
+There are many other things you can change to make the game either
+easier, harder, uglier or just different. Be creative.
+
+
+2c. ROOM DATA
+-------------
+
+You have probably noticed that some of the rooms (screens) in "Kid Icarus"
+are very similar to rooms elsewhere in the game. Well in fact, they most
+likely ARE the same room. That is, the same data is used to set up the
+room's elements (walls, floor, doors etc). The shop room is a good example
+of this. It is used in almost every level of the game.
+
+The room data, like the graphical structures, is stored dynamically in
+the ROM. This means that, unlike the macros, which are 4 bytes each,
+the data for each room is of variable length. The length depends on
+how complex the room is.
+
+Room data format
+----------------
+
+The first byte of the data for each room seems to be a control byte of
+some sort. I'm not entirely sure what it's used for. Only the lower two
+bits are used, the upper six are zero for all rooms. I've tried changing
+the values for some rooms but haven't noticed any differences afterwards.
+First I thought the value indicated which Name Table to write the data
+to, but that does not seem to be the case. Anyway:
+
+After this byte follows the room data itself. It consists of a number
+of 3-byte chunks. Each byte contains the following:
+
+Byte 0: %yyyyxxxx
+
+        yyyy = Y coordinate of graphical structure
+        xxxx = X coordniate of graphical structure
+
+Byte 1: %ssssssss
+
+               This byte holds the value of the graphical structure
+               to display (See Section 2b for a list of these).
+
+Byte 2: %------cc
+
+          cc = Upper two bits of the color used when the tiles are
+               displayed. Only the lower two bits of this byte are
+               used, the upper six are ignored.
+
+This sequence of bytes is then repeated for all the graphical structures
+that are to be drawn in the room.
+
+The two last bytes of a room's data are always FD FF. They function as
+an end-of-room statement.
+
+When a room is drawn, it is most likely done in the following fashion:
+
+* The Name Table is cleared by setting all its bytes to macro 00 (blank).
+* The room data is processed and structures are drawn according to their
+  coordinates, index value and colors.
+* FD FF is reached, meaning that the room has been set up properly.
+
+
+2d. LEVEL MAPS
+--------------
+
+The level map holds the actual sequence of rooms in each level. It is
+a pointer table consisting of 16-bit addresses (how many depends on how
+big the level is). Each address is a pointer to the desired room data in
+NES memory. This means you can use the same room twice or more, simply by
+letting two pointers point to the same room data (This is especially
+noticable in Level 4-1, where a couple of the rooms are heavily repeated
+throughout the level).
+
+
+LISTINGS
+--------
+
+Below is a list of all the data I've figured out. There is a
+different set of macros, structures and room data for each part of
+the game.
+
+Note: In order to avoid confusion, the values in the "Length" column
+only specify how many macros are drawn, and do NOT include the length
+byte(s) and/or the end-of-structure byte.
+
+The column farthest to the right specifies whether the structure draws
+the macros horizontally (H), vertically (V) or both (HV).
+
+
+ROM MAP
+-------
+
++-------------+-------+----------------------+
+| Location    | Level | Description          |
++-------------+-------+----------------------+
+| 0B04A-0B82C |  2    | Room data            |
+| 0B82D-0B93F |  2    | Graphical structures |
+| 0B940-0BB03 |  2    | Macros               |
+| 0BE46-0BEA5 |  2    | Palettes             |
+| 0FA8C-0FBFC |  4-1  | Room data            |
+| 0FBFD-0FCB7 |  4-1  | Graphical structures |
+| 0FCB8-0FE7B |  4-1  | Macros               |
+| 0FF34-0FF53 |  4-1  | Palettes             |
+| 15BF5-1626C |  x-4  | Room data            |
+| 1626D-1631D |  x-4  | Graphical structures |
+| 1631E-164E1 |  x-4  | Macros               |
+| 19950-1A1B9 |  1    | Room data            |
+| 1A1BA-1A2EB |  1    | Graphical structures |
+| 1A2EC-1A4AF |  1    | Macros               |
+| 1A6F7-1A756 |  1    | Palettes             |
+| 1A7A0-1ABC5 |  3    | Room data            |
+| 1ABC6-1AC76 |  3    | Graphical structures |
+| 1AC77-1AE3A |  3    | Macros               |
+| 1B06C-1B0CB |  3    | Palettes             |
++-------------+-------+----------------------+
+
+LEVEL 1
+-------
+
+Level 1-1 Background palette: 1A6F7
+          Sprite palette:     1A707
+Level 1-2 Background palette: 1A717
+          Sprite palette:     1A727
+Level 1-3 Background palette: 1A737
+          Sprite palette:     1A747
+
+
+Macros used in Level 1-1, 1-2, 1-3:
+
+ Value | Offset | Tile indexes | Description
+-------+--------+--------------+------------------------
+  00   | 1A2EC  | 12 12 12 12  | Blank
+  01   | 1A2F0  | A5 A6 A7 A8  | Bottom of head ornament
+  02   | 1A2F4  | 69 6A 6B 6C  | Top of head ornament
+  03   | 1A2F8  | CE CF CE CF  | Column
+  04   | 1A2FC  | DE DF DE DF  | Column ornament
+  05   | 1A300  | 6F 6F 6F 6F  | Bricks
+  07   | 1A308  | 7A 7A 6D 6E  | Two squares and base of column
+  08   | 1A30C  | 74 12 89 8A  | Top of dead tree
+  09   | 1A310  | 89 8A 89 8A  | Dead tree
+  0A   | 1A314  | 8F 90 91 92  | Top of column
+  0B   | 1A318  | 91 92 91 92  | Column
+  0C   | 1A31C  | 91 92 6D 6E  | Base of column
+  0D   | 1A320  | 93 92 95 92  | Column, crack on left side
+  0E   | 1A324  | 91 94 91 96  | Column, crack on right side
+  10   | 1A32C  | 91 92 93 94  | Column, crack in mid-air
+  11   | 1A330  | C7 12 C6 12  | Burning candle (striped)
+  12   | 1A334  | C6 12 C6 12  | Candle (striped)
+  13   | 1A338  | 70 71 72 73  | Bush
+  24   | 1A37C  | 64 65 64 65  | Door (open)
+  30   | 1A3AC  | AA AA AB AB  | Fire water
+  31   | 1A3B0  | CA CB CC CD  | Fangs facing right
+  32   | 1A3B4  | DA D6 D8 DC  | Fangs facing left
+  38   | 1A3CC  | 4D 4D B2 B2  | Energy restoring water!
+  40   | 1A3EC  | D4 D4 D5 D5  | Ground (grassy)
+  48   | 1A40C  | E0 E1 E2 D7  | Ground (icy)
+  50   | 1A42C  | 60 61 64 65  | Top of open door
+  51   | 1A430  | 60 61 62 63  | Top of closed door
+  52   | 1A434  | 62 63 62 63  | Door (closed)
+  53   | 1A438  | 4E 4F 4F 4E  | Big purple bricks
+  54   | 1A43C  | 5C 5D 5E 5F  | Scenery
+  55   | 1A440  | B1 B1 B1 B1  | Four square bricks
+  56   | 1A444  | C8 C8 C9 C9  | Ground
+  58   | 1A44C  | C4 C5 DB DD  | Scenery (ground)
+  59   | 1A450  | D9 D9 D9 D9  | Bricks
+  5A   | 1A454  | D0 D1 D2 D3  | Blue rock
+  5B   | 1A458  | 5B 5B 79 79  | Two squares, bricks underneath
+  5C   | 1A45C  | 51 50 50 51  | Funky bricks
+  6F   | 1A4A8  | A1 A2 A3 A4  | Jar with snakes
+
+
+Structures used in Level 1-1, 1-2, 1-3:
+
+ Offset | Length | Macro(s)         | Description    | H/V
+--------+--------+------------------+----------------+-----
+ 1A1BA  | 1      | 40               | Grassy ground  | -
+ 1A1BD  | 2      | 4040             | Grassy ground  | H
+ 1A1C1  | 4      | 40404040         | Grassy ground  | H
+ 1A1C7  | 4      | 59595959         | Bricks         | H
+ 1A1CD  | 4      | 58585858         | Ground         | V
+ 1A1D6  | 4      | 58585858         | Ground         | HV (2x2)
+ 1A1DD  | 1      | 59               | Brick          | -
+ 1A1E0  | 4      | 08090909         | Dead tree      | V
+ 1A1E9  | 4      | 53535353         | Purple bricks  | V
+ 1A1F2  | 8      | 5353535353535353 | Purple bricks  | HV (4x2)
+ 1A1FD  | 3      | 5B5B5B           | Bricks II      | H
+ 1A202  | 8      | 5959595959595959 | Bricks         | H
+ 1A20C  | 3      | 0A0D0C           | Column w/crack | V
+ 1A213  | 4      | 0A0E0D0C         | Column w/crack | V
+ 1A21C  | 2      | 5B5B             | Bricks II      | H
+ 1A220  | 2      | 0A10             | Column w/crack | V
+ 1A225  | 4      | 5C5C5C5C         | ???            | V
+ 1A22E  | 2      | 5021             | Open door      | V
+ 1A233  | 2      | 1112             | Burning candle | V
+ 1A238  | 8      | 5C5C5C5C5C5C5C5C | ???            | HV (4x2)
+ 1A243  | 2      | 1313             | Two bushes     | H
+ 1A247  | 3      | 303030           | Fire water     | H
+ 1A24C  | 8      | 5A5A5A5A5A5A5A5A | Blue rocks     | HV (2x4)
+ 1A259  | 4      | 5A5A5A5A         | Blue rocks     | H
+ 1A25F  | 1      | 53               | Purple brick   | -
+ 1A262  | 16     | 5858585858585858 | Ground         | HV (4x4)
+        |        | 5858585858585858 |                |
+ 1A277  | 8      | 5858585858585858 | Ground         | HV (2x4)
+ 1A284  | 4      | 48484848         | Ground (icy)   | H
+ 1A28A  | 1      | 48               | Ground (icy)   | -
+ 1A28D  | 16     | 5A5A5A5A5A5A5A5A | Blue rocks     | HV (4x4)
+        |        | 5A5A5A5A5A5A5A5A |                |
+ 1A2A2  | 1      | 13               | Bush           | -
+ 1A2A5  | 1      | 32               | Fangs (left)   | -
+ 1A2A8  | 4      | 54545454         | Scenery        | V
+ 1A2B1  | 8      | 5454545454545454 | Scenery        | HV (4x2)
+ 1A2BC  | 4      | 0201070C         | Statue         | V
+ 1A2C5  | 4      | 53535353         | Purple bricks  | H
+ 1A2CB  | 2      | 5029             | ???            | V
+ 1A2D0  | 2      | 5152             | Closed door    | V
+ 1A2D5  | 4      | 04030304         | Column         | V
+ 1A2DE  | 4      | 55555555         | Square bricks  | H
+ 1A2E4  | 3      | 565656           | Ground         | H
+ 1A2E9  | 1      | 31               | Fangs (right)  | -
+
+
+Room data for Level 1-1, 1-2, 1-3:
+
+19950-19988 Level 1 room #?? (end)
+19989-199C7 
+199C8-19A0C 
+19A0D-19A5A Level 1 room #00
+19A5B-19A8D Level 1 room #01
+19A8E-19ACF Level 1 room #02
+19AD0-19AF3 Level 1 room #03
+19AF4-19B3B 
+19B3C-19B89 
+19B8A-19BC2 
+19BC3-19BF2 
+19BF3-19C22 
+19C23-19C58 
+19C59-19C9A 
+19C9B-19CD0 
+19CD1-19CF4 
+19CF5-19D1E 
+19D1F-19D48 
+19D49-19D72 
+19D73-19DA5 
+19DA6-19DCC 
+19DCD-19DF3 
+19DF4-19E14 
+19E15-19E2F 
+19E30-19E47 
+19E48-19E7D 
+19E7E-19EC5 
+19EC6-19EE6 
+19EE7-19F13 
+19F14-19F5B 
+19F5C-19F88 
+19F89-19FD0 
+19FD1-1A000 
+1A001-1A02A 
+1A02B-1A066 
+1A067-1A09C 
+1A09D-1A0DB 
+1A0DC-1A114 
+1A115-1A15F 
+1A160-1A198 
+1A199-1A1B9 
+
+
+LEVEL 2
+-------
+
+Level 2-1 Background palette: 0BE46
+          Sprite palette:     0BE56
+Level 2-2 Background palette: 0BE66
+          Sprite palette:     0BE76
+Level 2-3 Background palette: 0BE86
+          Sprite palette:     0BE96
+
+
+Macros used in Level 2-1, 2-2, 2-3:
+
+ Value | Offset | Tile indexes | Description
+-------+--------+--------------+------------------------
+  00   | 0B940  | 12 12 12 12  | Blank
+  02   | 0B948  | E3 12 12 12  | Star
+  03   | 0B94C  | B4 B5 B6 B7  |
+  04   | 0B950  | 7B 12 12 12  | Heart
+  05   | 0B954  | C7 C8 C7 C8  |
+  06   | 0B958  | 12 12 D1 D1  |
+  08   | 0B960  | 89 8A 89 8A  |
+  09   | 0B964  | 97 98 12 97  |
+  0A   | 0B968  | 99 12 99 99  |
+  0B   | 0B96C  | 69 6A 6B 6C  |
+  0C   | 0B970  | A5 A6 A7 A8  |
+  0D   | 0B974  | 8F 90 6D 6E  |
+  0E   | 0B978  | 91 92 91 92  |
+  0F   | 0B97C  | 4D 4D B2 B2  |
+  10   | 0B980  | B2 B2 B2 B2  |
+  11   | 0B984  | 70 71 D3 D4  |
+  12   | 0B988  | D3 D4 D3 D4  |
+  13   | 0B98C  | DB DB DB DB  |
+  14   | 0B990  | 12 DC DC DC  |
+  15   | 0B994  | DE 12 DD DE  |
+  16   | 0B998  | DE 12 12 12  |
+
+
+Structures used in Level 2-1, 2-2, 2-3:
+
+ Offset | Length | Macro(s)         | Description    | H/V
+--------+--------+------------------+----------------+-----
+ 0B82D  | 2      | 5152             |                | V
+ 0B832  | 4      | 53535353         |                | H
+ 0B838  | 16     | 5353535354545454 |                | HV (4x4)
+                 | 5353535354545454 |
+ 0B84D  | 4      | 53545354         |                | V
+ 0B856  | 12     | 5353535355555555 |                | HV (4x3)
+                 | 54545454         |
+ 0B866  | 2      | 090A             |                | H
+ 0B86A  | 2      | 5759             |                | V
+ 0B86F  | 2      | 585A             |                | V
+ 0B874  | 4      | 06060606         |                | H
+ 0B87A  | 2      | 0505             |                | V
+ 0B87F  | 3      | 080808           |                | V
+ 0B886  | 3      | 0B0C0D           |                | V
+ 0B88D  | 4      | 0D0E0E0D         |                | V
+ 0B896  | 3      | 111212           |                | V
+ 0B89D  | 8      | 5B5B5B5B5B5B5B5B |                | HV (2x4)
+ 0B8AA  | 4      | 5C5C5C5C         |                | H
+ 0B8B0  | 3      | 313231           |                | H
+ 0B8B5  | 3      | 303030           |                | H
+ 0B8BA  | 12     | 0F0F0F0F10101010 |                | HV (4x3)
+                 | 10101010         |
+ 0B8CA  | 1      | 53               |                | -
+ 0B8CD  | 1      | 6F               |                | -
+ 0B8D0  | 2      | 6363             |                | H
+ 0B8D4  | 12     | 5E5E5E5E5F5F5F5F |                | HV (4x3)
+                 | 5F5F5F5F         |
+ 0B8E4  | 7      | 00141514150016   |                | HV (3+4)
+ 0B8EE  | 16     | 4849494A13131313 |                | HV (4x4)
+                 | 1313131313131313 |
+ 0B903  | 8      | 484A131313131313 |                | HV (2x4)
+ 0B910  | 6      | 606060606060     |                | HV (3x2)
+ 0B919  | 2      | 4B4C             |                | H
+ 0B91D  | 3      | 383838           |                | H
+ 0B922  | 1      | 02               |                | -
+ 0B925  | 1      | 03               |                | -
+ 0B928  | 4      | 61626161         |                | H
+ 0B92E  | 2      | 5021             |                | V
+ 0B933  | 1      | 63               |                | -
+ 0B936  | 3      | 636363           |                | H
+ 0B93B  | 2      | 5029             |                | V
+
+
+Room data for Level 2:
+
+0B04A-0B07F
+0B080-0B0BB
+0B0BC-0B0F4
+0B0F5-0B12A
+0B12B-0B14E
+0B14F-0B172
+0B173-0B19C
+0B19D-0B1CC
+0B1CD-0B1E4
+0B1E5-0B217
+0B218-0B24D
+0B24E-0B274
+0B275-0B298
+0B299-0B2C2
+0B2C3-0B2E3
+0B2E4-0B319
+0B31A-0B337
+0B338-0B361
+0B362-0B38B
+0B38C-0B3BB
+0B3BC-0B3DF
+0B3E0-0B3FD
+0B3FE-0B42D
+0B42E-0B454
+0B455-0B487
+0B488-0B4B4
+0B4B5-0B4C6
+0B4C7-0B4EA
+0B4EB-0B514
+0B515-0B54D
+0B54E-0B571
+0B572-0B595
+0B596-0B5BF
+0B5C0-0B5F5
+0B5F6-0B619
+0B61A-0B652
+0B653-0B67C
+0B67D-0B6AC
+0B6AD-0B6DC
+0B6DD-0B70F
+0B710-0B736
+0B737-0B76F
+0B770-0B7B4
+0B7B5-0B7EA
+0B7EB-0B811
+0B812-0B82C
+
+
+LEVEL 3
+-------
+
+Level 3-1 Background palette: 1B06C
+          Sprite palette:     1B07C
+Level 3-2 Background palette: 1B08C
+          Sprite palette:     1B09C
+Level 3-3 Background palette: 1B0AC
+          Sprite palette:     1B0BC
+
+
+Structures used in Level 3-1, 3-2, 3-3:
+
+ Offset | Length | Macro(s)         | Description    | H/V
+--------+--------+------------------+----------------+-----
+ 1ABC6  | 2      | 5152             |                | V
+ 1ABCB  | 2      | 0506             |                | V
+ 1ABD0  | 2      | 4042             |                | H
+ 1ABD4  | 3      | 404142           |                | H
+ 1ABD9  | 4      | 40414243         |                | H
+ 1ABDF  | 8      | 4041414141414142 |                | H
+ 1ABE9  | 8      | 5858585807070707 |                | HV (4x2)
+ 1ABF4  | 4      | 07080807         |                | V
+ 1ABFD  | 1      | 0C               |                | -
+ 1AC00  | 3      | 303030           |                | H
+ 1AC05  | 8      | 0000090A090A5E5E |                | HV (4x2)
+ 1AC10  | 4      | 56565656         |                | H
+ 1AC16  | 4      | 5E5F5E5F         |                | V
+ 1AC1F  | 16     | 5E5F5E5F5F5E5F5E |                | HV (4x4)
+                 | 5E5F5E5F5F5E5F5E |
+ 1AC34  | 4      | 5E5F5E5F         |                | H
+ 1AC3A  | 4      | 53545455         |                | H
+ 1AC40  | 2      | 5029             |                | V
+ 1AC45  | 3      | 383838           |                | H
+ 1AC4A  | 1      | 33               |                | -
+ 1AC4D  | 2      | 5021             |                | V
+ 1AC52  | 4      | 60606060         |                | V
+ 1AC5B  | 4      | 60606060         |                | H
+ 1AC61  | 8      | 5757575757575757 |                | HV (2x4)
+ 1AC6E  | 1      | 5E               |                | -
+ 1AC71  | 1      | 57               |                | -
+ 1AC74  | 1      | 0B               |                | -
+
+
+Room data for Level 3-1, 3-2, 3-3:
+
+1A7A0-1A7CC
+1A7CD-1A805 
+1A806-1A856 
+1A857-1A892 
+1A893-198AD 
+1A8AE-1A8CE 
+1A8CF-1A8EC 
+1A8ED-1A925 
+1A926-1A94C 
+1A94D-1A979 
+1A97A-1A997 
+1A998-1A9B5 
+1A9B6-1A9E5 
+1A9E6-1AA18 
+1AA19-1AA4E 
+1AA4F-1AA7B 
+1AA7C-1AAA5 
+1AAA6-1AADE 
+1AADF-1AB11 
+1AB12-1AB26 
+1AB27-1AB5F 
+1AB60-1AB95 
+1AB96-1ABC5 
+
+
+LEVEL 1-4, 2-4, 3-4
+-------------------
+
+Macros used in Level 1-4, 2-4, 3-4:
+
+ Value | Offset | Tile indexes | Description
+-------+--------+--------------+------------------------
+  00   | 1631E  | 12 12 12 12  | Blank
+  01   | 16322  | 8F 90 6D 6E  | Small column, both top and bottom
+  02   | 16326  | 91 92 91 92  | Column
+  03   | 1632A  | 8F 90 91 92  | Top of column
+  04   | 1632E  | 91 92 6D 6E  | Base of column
+  05   | 16332  | 69 6A 6B 6C  | Top of stonehead
+  06   | 16336  | A5 A6 A7 A8  | Bottom of stonehead
+  07   | 1633A  | AF AE 12 12  | ???
+  08   | 1633E  | A9 AE AF 12  | ???
+  09   | 16342  | 4D 4D B2 B2  | ???
+  0A   | 16346  | B2 B2 B2 B2  | ???
+  2A   | 163C6  | 64 65 64 65  | Door (open)
+  2E   | 163D6  | 9F A0 9F A0  | Ladder (left side)
+  2F   | 163DA  | A0 9F A0 9F  | Ladder (right side)
+  30   | 163DE  | AA AA AB AB  | Fire water
+  38   | 163FE  | 4D 4D B2 B2  | Energy restoring water!
+  40   | 1641E  | B0 B0 12 12  | Persian carpet? :)
+  48   | 1643E  | D7 D8 DF E0  | ???
+  49   | 16442  | D8 D9 E1 E2  | ???
+  50   | 1645E  | 60 61 64 65  | Top of open door
+  51   | 16462  | 14 15 15 14  | Ground (chess board)
+  52   | 16466  | C0 C1 C2 C3  | Brown grassy bricks
+  53   | 1646A  | 8F 90 6D 6E  | (Same as 01)
+  54   | 1646E  | B1 B1 B1 B1  | Four small squares
+  55   | 16472  | 60 61 62 63  | Top of closed door
+  56   | 16476  | 52 53 53 52  | White bricks (hospital)
+  57   | 1647A  | 54 55 56 57  | Red cross (hospital)
+  58   | 1647E  | 4E 4F 4F 4E  | Big grey bricks
+  59   | 16482  | AA AA AB AB  | (Same as 30)
+  5A   | 16486  | AB AB AB AB  | Fire water
+  5B   | 1648A  | 9A 9A 12 12  | ???
+  5C   | 1648E  | 9B 9C 9D 9E  | Square rock with rounded corners
+  5D   | 16492  | 58 59 5A 66  | Fire hydrant
+  5E   | 16496  | 62 63 62 63  | Door (closed)
+  68   | 164BE  | 9F A0 9F A0  | (Same as 2E)
+  69   | 164C2  | A0 9F A0 9F  | (Same as 2F)
+  6A   | 164C6  | 75 76 77 78  | Stone soldiers
+  6F   | 164DA  | A1 A2 A3 A4  | Jar with snakes
+  70   | 164DE  | C0 C1 12 12  | Brown grassy brick
+
+
+Structures used in Level 1-4, 2-4, 3-4:
+
+ Offset | Length | Macro(s)         | Description    | H/V
+--------+--------+------------------+----------------+-----
+ 1626D  | 2      | 555E             | Closed door    | V
+ 16272  | 7      | 51515151515151   | Ground (chess) | H
+ 1627B  | 4      | 5C5C5C5C         | Four rocks     | V
+ 16284  | 2      | 502A             | Open door      | V
+ 16289  | 5      | 5252525252       | Brown bricks   | V
+ 16294  | 4      | 52525252         | Brown bricks   | H
+ 1629A  | 4      | 70707070         | Brown bricks   | H
+ 162A0  | 2      | 7070             | Brown bricks   | H
+ 162A4  | 4      | 08070708         | ???            | H
+ 162AA  | 4      | 01030401         | Column         | V
+ 162B3  | 16     | 5252525252525252 | Brown bricks   | HV (4x4)
+        |        | 5252525252525252 |                |
+ 162C8  | 4      | 05060101         | Head on column | V
+ 162D1  | 1      | 5D               | Fire hydrant   | -
+ 162D4  | 4      | 54545454         | Small squares  | HV (2x2)
+ 162DB  | 2      | 4040             | Carpet         | H
+ 162DF  | 4      | 40404040         | Carpet         | H
+ 162E5  | 1      | 6F               | Jar w/snakes   | -
+ 162E8  | 3      | 383838           | Energy water   | H
+ 162ED  | 4      | 30303030         | Fire water     | H
+ 162F3  | 2      | 4849             | ???            | H
+ 162F7  | 4      | 56565656         | White bricks   | V
+ 16300  | 4      | 56565656         | White bricks   | H
+ 16306  | 1      | 57               | Red cross      | -
+ 16309  | 4      | 58585858         | Grey bricks    | V
+ 16312  | 4      | 58585858         | Grey bricks    | H
+ 16318  | 4      | 5C5C5C5C         | Four rocks     | H
+
+
+Room data for levels 1-4, 2-4, 3-4:
+
+15BF5-15C15 
+15C16-15C51 
+15C52-15C7E 
+15C7F-15CB4 
+15CB5-15D0B 
+15D0C-15D59 
+15D5A-15D98 
+15D99-15DE6 
+15DE7-15E28 
+15E29-15E64 
+15E65-15EA6 
+15EA7-15EEB 
+15EEC-15F3F 
+15F40-15F6F 
+15F70-15FA8 
+15FA9-15FF0 
+15FF1-16026 
+16027-1605C 
+1605D-1609B 
+1609C-160EC 
+160ED-16122 
+16123-16164 
+16165-161B5 
+161B6-161F7 
+161F8-16233 
+16234-1626C 
+
+
+LEVEL 4-1
+---------
+
+Level 4-1 Background palette: 0FF34
+          Sprite palette:     0FF44
+
+
+Macros used in Level 4-1 (the final level):
+
+ Value | Offset | Tile indexes | Description
+-------+--------+--------------+------------------------
+  00   | 0FCB8  | 12 12 12 12  | Blank
+  01   | 0FCBC  | 8B 8C 8D 8E  |
+  02   | 0FCC0  | 8F 90 6D 6E  |
+  03   | 0FCC4  | 91 92 91 92  |
+  04   | 0FCC8  | 6F 6F 6F 6F  |
+  06   | 0FCD0  | DE DF E0 E1  |
+  07   | 0FCD4  | E2 E3 E4 E5  |
+  08   | 0FCD8  | E6 E7 E8 E9  |
+  09   | 0FCDC  | EA EB EC D8  |
+  0A   | 0FCE0  | ED EE F1 F2  |
+  0B   | 0FCE4  | EF F0 F1 F1  |
+  0C   | 0FCE8  | 12 F3 F3 F1  |
+  0D   | 0FCEC  | F4 12 F1 F4  |
+  13   | 0FD04  | 87 88 6F 86  |
+  14   | 0FD08  | 70 71 72 73  |
+  15   | 0FD0C  | 72 73 72 73  |
+  16   | 0FD10  | F1 F1 F1 F1  |
+  19   | 0FD1C  | 85 86 87 6F  |
+  30   | 0FD78  | AA AA AB AB  |
+  52   | 0FDF8  | 60 61 62 63  |
+  53   | 0FDFC  | 62 63 62 63  |
+  54   | 0FE00  | 4F 4E 4E 4F  |
+  55   | 0FE04  | C9 C1 CC CD  |
+  56   | 0FE08  | CA CB C1 D1  |
+  57   | 0FE0C  | CF D0 D2 C1  |
+  58   | 0FE10  | C1 D1 C1 D3  |
+  59   | 0FE14  | C0 C0 C0 C0  |
+  5A   | 0FE18  | C2 C3 C5 C6  |
+  5B   | 0FE1C  | C4 D6 C7 C8  |
+  5C   | 0FE20  | D4 D5 D7 D7  |
+  5D   | 0FE24  | D6 D5 D7 D9  |
+  5E   | 0FE28  | DA D5 DC D6  |
+  5F   | 0FE2C  | DB DB D6 D5  |
+  60   | 0FE30  | D5 C0 D6 C0  |
+  61   | 0FE34  | C0 C0 12 C0  |
+  62   | 0FE38  | D5 C0 D6 D5  |
+
+
+Structures used in Level 4-1 (the final level):
+
+ Offset | Length | Macro(s)         | Description    | H/V
+--------+--------+------------------+----------------+-----
+ 0FBFD  | 4      | 30303030         |                | H
+ 0FC03  | 2      | 5051             |                | V
+ 0FC08  | 1      | 05               |                | -
+ 0FC0B  | 3      | 060708           |                | V
+ 0FC12  | 2      | 1415             |                | V
+ 0FC17  | 3      | 020202           |                | V
+ 0FC1E  | 4      | 09090909         |                | H
+ 0FC24  | 16     | 0C0A0B0A0B0A0B0D |                | HV (8x2)
+                 | 1616161616161616 |
+ 0FC37  | 4      | 52525252         |                | V
+ 0FC40  | 4      | 01020302         |                | V
+ 0FC49  | 4      | 03030303         |                | V
+ 0FC52  | 16     | 5F5757575F575757 |                | HV (4x4)
+                 | 5F60605758595E57 |
+ 0FC67  | 6      | 5A5B5C5D5F57     |                | HV (2x3)
+ 0FC71  | 4      | 52525252         |                | H
+ 0FC77  | 16     | 5252525252525252 |                | HV (4x4)
+                 | 5252525252525252 |
+ 0FC8C  | 10     | 605E605760575E57 |                | HV (2x5)
+                 | 5757             |
+ 0FC9C  | 4      | 53545556         |                | HV (2x2)
+ 0FCA3  | 16     | 1319041904040404 |                | HV (4x4)
+                 | 1304041304190404 |
+
+
+Room data for level 4-1:
+
+ ROM Offset | Room # | Description
+------------+--------+------------------
+0FA8C-0FABE |        | Room before Medusa
+0FABF-0FAFD |        | MEDUSA'S ROOM!
+0FAFE-0FB2D |        | Beginning of level
+0FB2E-0FB60 |        | Clouds
+0FB61-0FB87 |        | Witch and purple bricks
+0FB88-0FBBA |        | green enemies
+0FBBB-0FBFC
+
+
+2c. SPRITE STRUCTURES
+---------------------
+
+The sprite structures are defined much in the same way as the macros
+explained in section 2a; their values too point to 8x8-pixel tiles in PPU
+RAM which make up the sprites themselves. 
+
+The tile indexes for Kid Icarus's different positions/movements are
+stored at location 1C570-1C66F in the ROM. The structures are 8 bytes
+each, but only the first 6 of them are used for setting up the sprite;
+I'm not sure what the other two mean (if they mean anything at all).
+When Kid Icarus (and all other multi-tile sprites) are drawn, it is
+done like this:
+
++-----+
+| 1 2 |
+| 3 4 |   (the numbers say which byte of the structure is used where)
+| 5 6 |
++-----+
+
+So the sprite is drawn as a 2x3 tiles (16x24 pixels) image, even though
+the tile indexes are stored sequencially in ROM (123456). To give a
+concrete example: the tile indexes found at location 1C578-1C57D
+(00 01 10 11 20 21; Kid Icarus facing the left), are drawn like this:
+
++-------+
+| 00 01 |       Bring up the Pattern Tables in NESticle and click on
+| 10 11 |       the various "pieces" of Kid Icarus to see that this
+| 20 21 |       is indeed correct.
++-------+
+
+By changing these values you can turn the hero into one of the enemies,
+like the witch or the eggplant wizard! (Or into a glass of healing potion,
+like I did :-) ) Remember, though, that there are several structures for
+each sprite; together they make up short animations, containing all the
+sprites' movements (walking, jumping, flying, dying etc).
+
+I won't list what each and every animation frame of each and every
+sprite looks like, since the changes between each frame usually are minor.
+But here is a list of where you will find the data for some of the most
+common sprites:
+
+ ROM offset  | Description
+-------------+------------
+ 0DE89-0DEA8 | Reaper
+ 0DEA9-0DEC8 | Mad reaper! (calling for his Repeattes)
+ 14171-1418F | Eggplant wizard
+ 1C570-1C6FF | Kid Icarus
+
+
+4a. MAP DATA
+------------
+
+
+4b. MAP DATA DECOMPRESSION
+---------------------------
+
+The map data (at least in the vertical scrolling levels) is decompressed
+into location 0483-04C2 in RAM. This data is then written to the
+Name Table. Here's how it's done:
+
+First, the PPU memory address is set. The high byte of the address is
+contained in RAM location $0482, low byte is in $0481. The code for it:
+
+        lda     $0482           ; get high byte
+        sta     $2006           ; set high byte of PPU address
+        lda     $0481           ; get low byte
+        sta     $2006           ; set low byte of PPU address
+
+Then the name table data itself is written. Here's the code for that:
+
+        ldy     #$00            ; clear counter
+        write_table:
+        lda     $0483,y         ; load a tile index
+        sta     $2007           ; write to PPU memory
+        iny                     ; increase counter
+        cpy     #$40            ; done 64 writes yet?
+        bcc     write_table     ; the carry flag will be set if so.
+
+As you can see, the Name Table data is written in chunks of 64 (32x2) bytes,
+which equals 256x16 pixels, because each tile is 8x8 pixels.
+
+The two bytes that hold the PPU address ($0482 and $0481) most likely change
+according to the scroll registers, then wrap back around to 2000h or 2800h
+when both Name Tables have been scrolled.
+
+The graphical structures explained in Section 2 are what the map data
+is made up of. Each structure is loaded into the accumulator by doing
+indirect reads:
+
+        lda     ($06),y
+
+The tile index values for the structure is then fetched and
+written to $0483 using indexed memory addressing:
+
+        sta     $0483,y
+
+The reason I don't cover the decompression itself is because I haven't
+figured out how it works yet (read: I don't know where the map data
+is located in the ROM).
+
+The entire contents of the two Name Tables that are currently showed
+on the screen are stored at address 0500-05F0 and 0600-06F0 in CPU
+RAM. Note that they do not contain the tile index values themselves,
+only pointers to the 2x2-tile macros that are used when the Name Table
+is drawn in PPU memory (refer to section 2a for a list of these.)
+Therefore these tables are only 16x15 bytes in size each. The reason
+why they are kept here in the first place is probably so that the game
+easily can restore the original screen after you've paused the game,
+been to a shop etc.
+
+SUMMARY
+-------
+
+Level 4-1:
+
+ ROM offset | Description
+------------+------------------------------------
+0F???-0FBFC | Room data
+0FBFD-0FCB7 | Macros
+0FCB8-0FE3B | Graphical structures
+
+Levels 1-4, 2-4, 3-4:
+
+ ROM offset | Description
+------------+------------------------------------
+15BF5-1626C | Room data
+1626D-1631D | Macros
+1631E-164E1 | Graphical structures
+
+Other levels (1-1, 1-2, 1-3 etc...):
+
+ ROM offset | Description
+------------+------------------------------------
+19950-1A1B9 | Room data
+1A1BA-1A2EB | Macros
+1A2EC-1A4AF | Graphical structures
+
+1A???-1ABC5 | Room data
+
+
+5. CHANGING VITAL STATS
+-----------------------
+
+OK, now for something completely different.
+
+When the game is running, Kid Icarus' life points are stored in a
+variable at offset 00A6 in CPU RAM. The variable stored here will be
+decreased by 1 (or maybe some bigger value) every time Kid Icarus makes
+physical contact with one of the enemies. When it reaches zero, he dies.
+Each time you get an energy tank, your total amount of achievable life
+points increases by 8.
+
+Before I tell you how to make Kid Icarus immortal, here's an explanation
+of how I figured out the offset of the life points variable:
+
+First, I ran Kid Icarus in NESticle, and started at Level 1. When you
+first start out, you have full life, as you know. Then, I did a RAM
+dump (select CPU -> Debug -> Dump RAM). Next, I made contact with one
+of the enemies, on purpose, so that my lifebar went down by 1. Once
+again, I did a RAM dump. And for the second time, I touched one of
+the enemies, decreasing my life points, and dumped the RAM again. Now
+I had THREE copies of the RAM, which I KNEW had a life points variable
+which would be different in each dump. So I loaded the three files in
+a hex editor (Hex Workshop, if you must know), and compared them
+closely, until I found a variable at offset 00A6 which had the value
+07 in the first dump, 06 in the second, and 05 in the third. This had
+to be the life points variable. And indeed, it was.
+
+This technique is quite an efficient way of tracking down game stats.
+Note, however, that most NES games store variables such as these in the
+Zero Page (the first 100h (256) bytes of CPU RAM), because it's faster
+and the code takes less space. So always study closely the locations
+0000-00FF first when searching for specific variables. Afterwards try
+locations 0100-07FF. The RAM beyond this point (0800-1FFF) is just a
+MIRROR of the first 2K (exactly the same, in other words), but NESticle
+only keeps one copy of the RAM, so the area 0800-1FFF of the RAM dump
+will only contain zeroes (00).
+
+OK, I promised I would tell you how to make Kid Icarus immortal, so I
+will. Each time Kid Icarus touches an enemy, a routine is called which
+decreases the life points variable (offset 00A6 in RAM), making it
+closer and closer to zero, until it actually reaches zero and you die.
+I won't show you the 6502 code for this, because I don't know exactly
+where the routine starts. But fortunately, I know its purpose, and in
+this case, that is enough. The routine loads the life points variable
+into the accumulator (an internal 6502 register), then subtracts a
+value from that register (I assume the value subtracted is dependent on
+the enemy's damage level), and writes the resulting value back into
+offset 00A6. Then this value is compared to see if it is zero or a
+negative value. If it is, then Kid Icarus has gotten his butt whipped
+one time too many, and the "I'm finished!" message is displayed.
+
+What you need to do is remove the code that writes the modified value
+BACK to 00A6. This way the variable won't be changed. I was pretty
+sure the instruction used for doing this was "STA $A6", which means
+"store the accumulator's value at offset A6" in plain English. The
+machine code for this command equals 85 A6. So I used a hex editor
+and did a hexadecimal search for these two values. Unfortunately, since
+this string is very short, consisting only of two values, I got a lot
+of results. How do you know if you've found the one you're looking for?
+
+Well, there are many ways of doing this that I know of. One way is to
+make a backup of the ROM, then change the first occurance of the string,
+load the game and see if it had the desired effect, if not, restore the
+original ROM and change the second occurance of the string, etc. until
+it does what you want it to. This method can take a lot of time, though,
+so it's not really preferable, unless you know more than one of the
+machine code instructions in the routine (which isn't very likely).
+
+Another way is to attempt to read the machine code surrounding the string
+(that is, convert it from machine language to text). This is what I did
+to confirm that I had found the correct string, and to see exactly how
+the main part of the routine worked, but it's really NOT recommended
+unless you know the 6502 instruction set and their opcodes pretty well
+(what can I say, I spent a lot of time writing the 6502 core for my NES
+emulator :-) ).
+
+Actually, I cheated a bit when figuring out the location of the string.
+I put some temporary code into my NES emulator which checked to see if
+the life points variable equaled 6 or below, if it did (meaning that
+Kid Icarus had been hurt), then the emu exited and wrote the machine
+code for the last instruction executed, as well as the 10 preceding
+bytes of code, to a file. I then searched for this string in the Kid
+Icarus ROM, and this time I found only one occurance. Unfortunately,
+unless you've written your own NES emulator, you won't be able to use
+this method, which by far is the most efficient one.
+
+If you have no other choice than using the "try-every-string" method, you
+can still improve the odds of finding the correct string fast if you're
+dealing with a ROM that uses "hardwiring". MMC1 mapper games use
+hardwiring; "Kid Icarus" is one of them. What it means is that the LAST
+16K program bank is permanently loaded into memory during program
+execution; it can't be swapped. The programmers most likely put the
+routines that are called frequently in this last program bank, to avoid
+heavy bank switching in the swappable area. So if you position the
+file pointer to the very end of the ROM, and do a search backwards,
+chances are you will find the string quicker, if you know that the
+function you're looking for is much used. This is true in the case
+of the routine decreasing the life points in "Kid Icarus"; it is located
+near the middle of the very last program bank in the ROM: The
+instruction "STA $A6" (85 A6) is at offset 1DB44, to be exact, and
+this is the location to modify.
+
+BUT WAIT! Don't go changing any values yet! First you'll need to know
+WHAT to change them to. As I said, we want to remove this particular
+instruction, as if it weren't there. Now, some of you smart-asses out
+there are probably thinking "Heh heh, big deal! I'll just DELETE those
+two tiny bytes!". Shame on you for even THINKING that thought! If you
+do that your ROM will be screwed beyond recovery. What you need to
+do instead is change the values 85 A6 to EA EA. EA is the hexadecimal
+value for the 6502 instruction NOP, "no operation". The NOP instruction
+does just that; nothing. So now, the code which previously executed
+"STA $A6", will execute two NOP instructions. And that's all there is
+to it. Save the ROM, load and run it in your favourite NES emulator
+(remember to RELOAD the ROM every time you make a change to it to see
+the results of your changes), and Kid Icarus should now be immortal.
+
+Unfortunately, there is still one small problem: Kid Icarus isn't
+completely immortal. He still loses life points when walking in Fire
+water. This is because a different routine is used to decrease the
+life points variable in this case. The Fire water only has one
+"strength", it's the same everywhere in the game, so its damage
+level is constant (equal to 1 in the case of Fire water). The
+enemies, however, have variable strengths, therefore a different
+routine is used to handle hits caused by enemies (already covered
+above).
+
+So we once again need to track down a machine code instruction. This
+time it's "DEC $A6", which means "decrease variable at offset $A6
+by one". The machine code for this instruction is C6 A6. Do a search
+for this, and only one result will turn up. This is the occurance
+we're looking for! Once again, change the two bytes to EA EA and
+save the ROM. Congratulations, you have now created Kid "Terminator"
+Icarus.
+
+TIP: In games where the player has multiple lives, tracking down
+the Number_of_lives variable is a simple way of getting unlimited
+lives. All games of this type probably do this exact same thing:
+when the player dies, the Number_of_lives variable is decreased,
+and checked to see if it has reached zero. If it has, the player
+is Game Over, otherwise, you get to play again. So if you first
+find the RAM offset of the variable (by employing the multiple
+ROM dump method described earlier), and then search for the
+machine code equivalent of "DEC $<offset>", NOPing this
+instruction out will give you infinite lives.
+
+
+6. Closing words
+-----------------
+
+Well, that should be enough info to get you started with hacking "Kid
+Icarus" (or some other game). This is not at all a COMPLETE guide to
+hacking the game, but it was the best I could do. I can't guarantee
+that every statement in this document is 100% true, but I've
+double-checked the ROM offsets for typos, so hopefully all of them
+are correct.
+
+This document will be updated when I or somebody else figures out
+the whereabouts of the map data and the way it is stored. When this
+happens, I will have all the info I need to make a level editor.
+
+If you enjoyed this tutorial/reference/whatever, I'd like to hear from
+you. Any questions and/or comments should be sent to my email address:
+
+kentmhan@online.no
+
+Thanks for reading.
+
+This document copyright (c) Kent Hansen 1998.
+"Kid Icarus"(tm) copyright (c) Nintendo 1986.

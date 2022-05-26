@@ -1,0 +1,58 @@
+
+        Wrecking Crew level editor v1.0
+        by SnowBro <kentmhan@online.no>
+
+
+        About
+        -----
+
+        This editor works pretty much exactly like the built-in
+        level editor in Wrecking Crew. Why did I bother to make
+        an editor for a game which already has one, you say?
+        Well, the built-in editor in Wrecking Crew had some
+        annoying problems:
+
+        - You couldn't edit the original game levels (1-100)
+        - The "Save" and "Load" functions were totally bogus!
+
+        Also, those of you who played with the built-in editor
+        probably remember another "bug": there has to be a
+        breakable wall in your level, otherwise the game will
+        just skip to the next level. CrewEdit can't fix this
+        last problem (since it has to do with the game engine
+        itself), so keep it in mind when you're designing
+        levels.
+
+        One of the things I remember about Wrecking Crew
+        (from my early NES days) was that it had very crappy
+        level design. While some of the early levels were
+        kinda neat, most of the latter ones were either
+        ridiculously hard, or just plain ugly. I'm sure that
+        someone can do better than most of the levels presented
+        in the game (check out level 89, for example! :P ).
+        The people who made the game probably got very bored
+        with it after designing about 20 levels, so they
+        just slammed blindly on their keyboards to produce
+        the final 80. Well, now's your chance to change this!
+        Good luck on your quest to make Wrecking Crew a
+        memorable game - you'll need it. ;-)
+
+
+        Keys
+        ----
+
+        Keys "1" and "2": These work like the "A" and "B"
+        buttons in the in-game editor. First press will
+        select the current object at the current map
+        position. Subsequent presses will flip through
+        the objects you can select from.
+
+        Arrow keys select map position.
+
+        F1 selects the previous level.
+
+        F2 selects the next level.
+
+        F5 saves changes.
+
+        F10 clears current level.

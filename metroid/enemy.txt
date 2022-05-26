@@ -1,0 +1,11 @@
+Enemy format: 060F6-?????
+
+Byte 0: vhcc????
+
+        v:  Vertical flip
+        h:  Horizontal flip
+        cc: Upper two bits of enemy colors
+
+Byte 1: X boundary
+
+Byte 2: Y boundary

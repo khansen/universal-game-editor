@@ -1,0 +1,9 @@
+07B10h: 2x2 tile defines. This format is kinda weird. Instead of
+        defining the four tile indexes for each macro sequentially,
+ 
+
+07310h: The data starting at this offset consists of 4-byte chunks.
+        Each byte refers to a 2x2 tile macro defined elsewhere in
+        the ROM.
+
+10010h: Room data. Each byte refers to one of the 4-byte chunks.

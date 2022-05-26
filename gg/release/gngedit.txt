@@ -1,0 +1,40 @@
+
+        Ghosts'n Goblins level editor v1.0
+        by SnowBro <kentmhan@online.no>
+
+        This program, unlike my other level editors, is mouse-driven
+        (at least the main editing). Hope you like it.
+
+        GNG.NES available separately.
+
+
+        How to use it
+        -------------
+
+        Selecting tiles:
+
+        Select the 16x16 tile you want to use from the set of tiles
+        at the right of the screen by pointing at it and then
+        clicking LEFT mouse button. To select a tile from the
+        room data itself, point on the tile you want to use and
+        press RIGHT mouse button to select it.
+
+        Press TAB to bring up other sets of tiles. Most of the levels
+        have 2 or more sets, so press TAB multiple times to browse
+        through all of them.
+
+        Drawing tiles:
+        
+        Press LEFT mouse button at the appropriate screen position
+        to paste it in.
+
+        Changing levels:
+
+        Press F1 to change to the next level/next part of the level.
+
+        Use the arrow keys (left/right) on your keyboard to move
+        around in the selected level.
+
+        Saving:
+
+        Press F5 to save the changes you've made.

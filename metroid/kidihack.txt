@@ -1,0 +1,179 @@
+
+                        +-------------------------------+
+                        |                               |
+                        |  METROID ROOM DATA EXPLAINED  |
+                        |          version 1.00         |
+                        |                               |
+                        +-------------------------------+
+
+                                Written by SnowBro
+                               <kentmhan@online.no>
+
+2a. MACROS
+----------
+
+Macros are something that makes the life of a programmer easier. In
+"Metroid", they are also used to make the size of the code smaller.
+
+The macros are defined in the ROM. Each macro consists of four bytes;
+each byte in the macro points to a 8x8 tile in PPU RAM, and together
+these tiles form a 2x2 tiles (or 16x16 pixels) picture. The macro
+data is stored sequencially in ROM (4x1 bytes).
+
+How did I figure out the macro values? Easy, just run Metroid in
+NESticle, start the game and press F2 to bring up the Pattern Tables
+Then click on the tiles to see their values. Study the Name Table graphics
+closely to see which tiles are used where. You can then search for these
+values in the ROM, just like you search for text.
+
+
+2b. GRAPHICAL STRUCTURES
+------------------------
+
+The raw uncompressed map data consists of predefined structures stored
+in the ROM. The graphical structures are made up of the macros covered in
+the previous section. The format is of two types; which type used by
+a specific structure depends on whether the structure is going to draw the
+tiles horizontally or vertically. The two formats can also be combined.
+
+A structure for horizontal drawing has the following format:
+
+* The first byte specifies how many macros to draw.
+* The remaining bytes specify which macros to draw.
+* The value FF follows, functioning as an end-of-structure statement.
+
+A structure for vertical drawing has the following format:
+
+* Length (always one).
+* Which macro to draw.
+* Length (always one).
+* Which macro to draw.
+* ... etc until FF is reached.
+
+A structure can also draw macros both horizontally AND vertically; then
+the format is a combination of the two described above (read further
+for an example of this).
+
+A typical structure looks like this:
+
+02 13 13 FF
+
+This structure draws macro 13h twice, side by side.
+
+If this structure were to draw the two macros vertically (on top of each
+other), it would look like this:
+
+01 13 01 13 FF
+
+And a structure that draws two macros on top of two other macros,
+looks like:
+
+02 13 13 02 13 13 FF
+
+As you can see, the format is only slighty different.
+
+
+2c. ROOM DATA
+-------------
+
+You have probably noticed that many of the rooms (screens) in "Metroid"
+are very similar to rooms elsewhere in the game. Well in fact, they most
+likely ARE the same room. That is, the same data is used to set up the
+room's elements (walls, floor, doors etc).
+
+The room data, like the graphical structures, is stored dynamically in
+the ROM. This means that, unlike the macros, which are 4 bytes each,
+the data for each room is of variable length. The length depends on
+how complex the room is (more precisely, how many objects the room
+consists of).
+
+Room data format
+----------------
+
+The first byte of the data for each room seems to be a control byte of
+some sort. I'm not entirely sure what it's used for. Only the lower two
+bits are used, the upper six are zero for all rooms. I've tried changing
+the values for some rooms but haven't noticed any differences afterwards.
+First I thought the value indicated which Name Table to write the data
+to, but that does not seem to be the case. Anyway:
+
+After this byte follows the room data itself. It consists of a number
+of 3-byte chunks. I call these chunks Objects. The format is as follows:
+
+Byte 0: %yyyyxxxx
+
+        yyyy = Y coordinate of graphical structure
+        xxxx = X coordniate of graphical structure
+
+Byte 1: %ssssssss
+
+               This byte holds the value of the graphical structure
+               to display.
+
+Byte 2: %------cc
+
+          cc = Upper two bits of the color used when the tiles are
+               displayed. Only the lower two bits of this byte are
+               used, the upper six are ignored.
+
+This sequence of bytes is then repeated for all the graphical structures
+that are to be drawn in the room.
+
+The last byte of a room's data is always FD (sometimes FF; depends on
+whether there are any enemies in the room or not, see below). It functions
+as an end-of-room statement.
+
+When a room is drawn, it is most likely done in the following fashion:
+
+* The Name Table is cleared by setting all its bytes to macro 00 (blank).
+* The room data is processed and structures are drawn according to their
+  coordinates, index value and colors.
+* FD is reached, meaning that the room has been set up properly.
+* After FD follows the enemy data for the current room.
+* FF is reached.
+
+
+        ROM MAP
+
+        +--------+----------+----------------------+
+        | Offset | Area     | Description          |
+        +--------+----------+----------------------+
+        | 06284  | Brinstar | Palette              |
+        | 06324  | Brinstar | Room pointer table   |
+        | 06451  | Brinstar | Room data            |
+        | 06C94  | Brinstar | Graphical structures |
+        | 06F00  | Brinstar | Tile macros          |
+        | 0A18B  | Norfair  | Palette              |
+        | 0A22B  | Norfair  | Room pointer table   |
+        | 0A3BB  | Norfair  | Room data            |
+        | 0ACC9  | Norfair  | Graphical structures |
+        | 0AEFC  | Norfair  | Tile macros          |
+        | 0E72B  | Tourian  | Palette              |
+        | 0E7E1  | Tourian  | Room pointer table   |
+        | 0E8BF  | Tourian  | Room data            |
+        | 0EC26  | Tourian  | Graphical structures |
+        | 0EE59  | Tourian  | Tile macros          |
+        | 12168  | Kraid    | Palette              |
+        | 121E5  | Kraid    | Room pointer table   |
+        | 122C7  | Kraid    | Room data            |
+        | 12A7B  | Kraid    | Graphical structures |
+        | 12C42  | Kraid    | Tile macros          |
+        | 160FE  | Ridley   | Palette              |
+        | 1618F  | Ridley   | Room pointer table   |
+        | 1624F  | Ridley   | Room data            |
+        | 169CF  | Ridley   | Graphical structures |
+        | 16B33  | Ridley   | Tile macros          |
+        +--------+----------+----------------------+
+
+6. Closing words
+-----------------
+
+If you enjoyed this tutorial/reference/whatever, I'd like to hear from
+you. Any questions and/or comments should be sent to my email address:
+
+kentmhan@online.no
+
+Thanks for reading.
+
+This document copyright (c) Kent Hansen 1998.
+"Metroid"(tm) copyright (c) Nintendo 1986.

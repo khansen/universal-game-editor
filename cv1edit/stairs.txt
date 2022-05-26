@@ -1,0 +1,57 @@
+
+        OK, first let me define what I mean by "a set of stairs"
+        in Castlevania. Each stairway on the screen is actually
+        two stairs: one leading up, and one leading down.
+
+                                         +--- <-- Stairs II (top)
+                                         |
+                                     +---+
+                                     |
+                                 +---+
+                                 |
+        Stairs I (bottom) --> ---+
+
+        So there is separate data for each of the stairs. The
+        only data they share is the room number where the stairs
+        should be applied (see below).
+
+
+18019h - %yyyytttt
+
+        yyyy:   Y start position of stairs. Multiply by 16
+                to get real offset on screen.
+
+        tttt:   Stairs type. There are four different kinds:
+
+                0: Stairs going up right.
+                1: Stairs going up left.
+                2: Stairs going down left.
+                3: Stairs going down right.
+
+1801Ah - %xxxxrrrr
+
+        xxxx:   X start position of stairs. Multiply by 16
+                to get real offset on screen.
+
+        rrrr:   Level offset. This nibble refers to which
+                room in the current portion of the level
+                the stairs should be applied to.
+                Multiply by 48 (size of one room) to get
+                real offset in level data.
+
+1801Bh - %yyyytttt
+
+        yyyy:   Y end position of stairs. Multiply by 16
+                to get real offset on screen.
+
+        tttt:   Stairs type. Should be the exact opposite
+                of the type defined in 18019h (see above).
+
+1801Ch - %xxxx??pp
+
+        xxxx:   X end position of stairs. Multiply by 16
+                to get real offset on screen.
+
+        pp:     Properties for the stairs leading down.
+                01b = Simon can only walk up
+                10b = Simon can walk both up and down
